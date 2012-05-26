@@ -1,4 +1,6 @@
 *.swp
 *.ghci
 *.log
+*.hi
+*~
 dist
