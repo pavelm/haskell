@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Main where
 
@@ -10,6 +11,8 @@ import qualified Data.Text as T
 import           Snap.Http.Server
 import           Snap.Snaplet
 import           Snap.Core
+import           Snap.Util.FileServe
+import           Control.Applicative
 
 import           System.IO
 
@@ -60,19 +63,22 @@ change.
 
 -}
 main :: IO ()
-main = do
-    -- depending on the version of loadSnapTH in scope, this either
-    -- enables dynamic reloading, or compiles it without.  The last
-    -- argument to loadSnapTH is a list of additional directories to
-    -- watch for changes to trigger reloads in development mode.  It
-    -- doesn't need to include source directories, those are picked up
-    -- automatically by the splice.
-    (conf, site, cleanup) <- $(loadSnapTH [| getConf |]
-                                          'getActions
-                                          ["resources/templates"])
+main = quickHttpServe site
 
-    _ <- try $ httpServe conf $ site :: IO (Either SomeException ())
-    cleanup
+site :: Snap ()
+site = 
+   ifTop (writeBS "hello world") <|>
+   route [ ("foo", writeBS "bar")
+         , ("echo/:echoparam", echoHandler)
+         ] <|> 
+   dir "static" (serveDirectory ".")
+
+
+echoHandler :: Snap()
+echoHandler = do
+   param <- getParam "echoparam"
+   maybe (writeBS "must specify echo/param in URL")
+         writeBS param
 
 
 -- | This action loads the config used by this application.  The
@@ -104,6 +110,6 @@ getConf = commandLineConfig defaultConfig
 -- sophisticated code might.
 getActions :: Config Snap () -> IO (Snap (), IO ())
 getActions _ = do
-    (msgs, site, cleanup) <- runSnaplet app
+    (msgs, site2, cleanup) <- runSnaplet app
     hPutStrLn stderr $ T.unpack msgs
     return (site, cleanup)
