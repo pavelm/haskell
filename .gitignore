@@ -4,3 +4,5 @@
 *.hi
 *~
 dist
+.DS_Store
+cabal-dev/
