@@ -1,7 +1,7 @@
-import Data.Time.Calendar (Day(..),fromGregorian)
+import Data.Time.Calendar (Day(..),fromGregorian,toGregorian)
 import Data.Time.Clock (getCurrentTime,utctDay)
 import Yahoo
-
+import Classifier
 
 main = do
     let startDate = fromGregorian 2008 01 01
@@ -30,3 +30,4 @@ processQuote (px,bal,qty) (_,currentPx)
     where cost = currentPx * sharesPerOrder
           shares = sharesPerOrder
           newBalance = bal - cost
+
