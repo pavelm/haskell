@@ -141,6 +141,29 @@ search es index offset query =
                      , ("from", show offset)
                      ]
 
+rawsearch :: 
+          ElasticSearch
+       -- ^ The elasticsearch server to use.
+       -> String
+       -- ^ The index to search.
+       -> Integer
+       -- ^ The offset into the results.
+       -> Text
+       -- ^ The search query.
+       -> IO String
+       -- ^ A list of matching documents.
+rawsearch es index offset query =
+    dispatchRequest es GET path Nothing >>= parseSearchResults
+  where dt = "tweet"
+        path = case combineParts [ index, dt, "_search" ] of
+          Nothing -> error "Could not form search query"
+          Just uri ->
+            uri { uriQuery = "?" ++ queryString }
+        parseSearchResults sJson = return $ show sJson
+        queryString = intercalate "&" $ (\(k, v) -> k ++ "=" ++ v) `map` queryParts
+        queryParts = [ ("q", escapeURIString isUnescapedInURI (T.unpack query))
+                     , ("from", show offset)
+                     ]
 --------------------------------------------------------------------------------
 -- Private API
 --------------------------------------------------------------------------------
@@ -160,27 +183,24 @@ documentIndexPath doc index =
 
 dispatchRequest :: ElasticSearch -> RequestMethod -> URI -> Maybe BS.ByteString
                 -> IO BS.ByteString
-dispatchRequest es method apiCall body =
-  case uri' of
-    Nothing -> error "Could not formulate correct API call URI"
-    Just uri -> do
-      resp' <- simpleHTTP (req uri)
-      case resp' of
-        Left e -> error ("Failed to dispatch request: " ++ show e)
-        Right resp -> case rspCode resp of
-          (2, _, _) -> return (rspBody resp)
-          (3, _, _) -> error "Found redirect, dunno what to do"
-          (4, _, _) -> error ("Client error: " ++ show (rspBody resp))
-          (5, _, _) -> error ("Server error: " ++ show (rspBody resp))
-          code      -> error $ "Unknown error occured" ++
-                               show (formatResponseCode code)
+dispatchRequest es method apiCall body = do
+  resp' <- simpleHTTP (req uri)
+  case resp' of
+    Left e -> error ("Failed to dispatch request: " ++ show e)
+    Right resp -> case rspCode resp of
+      (2, _, _) -> return (rspBody resp)
+      (3, _, _) -> error "Found redirect, dunno what to do"
+      (4, _, _) -> error ("Client error: " ++ show (rspBody resp) ++ show (body))
+      (5, _, _) -> error ("Server error: " ++ show (rspBody resp))
+      code      -> error $ "Unknown error occured" ++
+                           show (formatResponseCode code)
   where req uri = Request { rqMethod = method
                           , rqURI =  uri
                           , rqHeaders = [ Header HdrUserAgent (esUserAgent es)
                                         , Header HdrContentLength bodyLength ]
                           , rqBody = putBody body
                           }
-        uri' = apiCall `relativeTo` esEndPoint es
+        uri = apiCall `relativeTo` esEndPoint es
         putBody (Just body') = buf_fromStr bops $ Char8.unpack body'
         putBody Nothing      = buf_empty bops
         bodyLength           = maybe "0" (show . BS.length) body
