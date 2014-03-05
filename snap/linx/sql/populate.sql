@@ -1,0 +1,20 @@
+insert into link(url,title,user_id) values ('http://www.google.com', 'Google', 1);
+insert into link(url,title,user_id) values ('http://www.yahoo.com', 'Yahoo!', 1);
+insert into link(url,title,user_id) values ('http://news.ycombinator.com', 'Hacker News', 1);
+insert into link(url,title,user_id) values ('http://www.twitter.com', 'Twitter', 1);
+insert into link(url,title,user_id) values ('http://www.facebook.com', 'Facebook', 1);
+insert into link(url,title,user_id) values ('http://www.hbo.com', 'HBO', 1);
+insert into link(url,title,user_id) values ('http://news.google.com', 'Google News', 1);
+
+insert into link_queue values (2,1);
+insert into link_queue values (2,3);
+insert into link_queue values (2,4);
+insert into link_queue values (2,5);
+insert into link_queue values (2,7);
+insert into link_queue values (3,2);
+insert into link_queue values (3,3);
+insert into link_queue values (3,4);
+insert into link_queue values (3,6);
+insert into link_queue values (4,1);
+insert into link_queue values (4,2);
+insert into link_queue values (4,3);
