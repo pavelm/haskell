@@ -20,6 +20,9 @@
                 <a class="navbar-brand" href="/">Linx</a>
               </div>
               <div class="navbar-collapse collapse">
+                  <ul class="nav navbar-nav">
+                    <li><a href="/submit">submit</a></li>
+                  </ul>
                   <ul class="nav navbar-nav navbar-right">
                       <ifLoggedIn>
                           <li>Hello <loggedInUser/></li>

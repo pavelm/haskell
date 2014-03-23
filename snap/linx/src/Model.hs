@@ -1,12 +1,17 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Model where 
+module Model where
 
-import qualified Data.Text as T 
+import qualified Data.Text as T
 import Control.Applicative
 import Database.PostgreSQL.Simple.FromRow
-import Database.PostgreSQL.Simple
-
+--import           Snap.Snaplet
+--import           Snap.Snaplet.Auth
+import           Snap.Snaplet.PostgresqlSimple
+--
+--------------------------------------------------------------------------------
+--import Application
+------------------------------------------------------------------------------
 
 data Link = Link {
     linkId :: Int
@@ -18,3 +23,12 @@ data Link = Link {
 
 instance FromRow Link where
     fromRow = Link <$> field <*> field <*> field <*> field <*> field 
+
+instance FromRow Int where
+    fromRow = field
+
+
+postLink :: (HasPostgres m) => T.Text -> T.Text -> Int -> m Int
+postLink url title user = do
+    linkids <- returning "INSERT INTO link (url,title,user_id) VALUES (?, ?, ?) RETURNING id" [(url, title, user)]
+    return $ head linkids

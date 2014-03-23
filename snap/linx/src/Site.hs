@@ -13,6 +13,8 @@ import           Control.Applicative
 import           Control.Monad.Trans
 import           Data.ByteString (ByteString)
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as E
+import           Data.Maybe
 import           Data.Monoid
 import           Snap.Core
 import           Snap.Snaplet
@@ -70,6 +72,34 @@ createNewProject = do
     newProject <- execute "INSERT INTO projects VALUES (?,?)" (title,description)
     redirect "/"
 
+handleSubmit :: Handler App (AuthManager App) () 
+handleSubmit = method GET handleForm
+  where 
+    handleForm = render "submit"
+
+
+getUserId :: AuthUser -> Int
+getUserId  user = 
+    case userId user of 
+    Just uid -> readId uid
+    Nothing -> -1
+  where readId = read . T.unpack . unUid
+
+
+
+postLinkHandler :: Handler App App ()
+postLinkHandler = do
+    user <- with auth currentUser
+    url <- getPostParam "url"
+    title <- getPostParam "title"
+    for <- getPostParam "for"
+    let u = unmaybe url 
+        t = unmaybe title
+        f = unmaybe for
+        x = maybe (-1) getUserId user
+    linkid <- postLink u t x
+    writeText $ u `T.append` "\n" `T.append` t `T.append` "\n" `T.append` f `T.append` "\n" `T.append` (T.pack (show linkid))
+  where unmaybe = E.decodeUtf8 . fromMaybe ""
 
 linksForUser :: Int -> Handler App App [Link]
 linksForUser uid = do 
@@ -89,6 +119,13 @@ linksForUser' = do
         Nothing -> return []
   where getId u = maybe "-1" unUid $ userId u
         
+
+withCurrentUser :: a -> (AuthUser -> Handler App App a) -> Handler App App a
+withCurrentUser nouser f = do
+    user <- with auth currentUser
+    case user of 
+        Just u -> f u
+        Nothing -> return nouser
 
 needsAuth :: Handler App (AuthManager App) () -> Handler App App ()
 needsAuth x = with auth $ requireUser auth (redirect "/") x
@@ -111,7 +148,10 @@ routes = [ ("/login",    with auth handleLoginSubmit)
 -- | Splices 
 
 linkHandler :: Handler App App ()
-linkHandler = needsAuth $ cRender "links"
+linkHandler = method GET handleGet <|> method POST handleFormSubmit 
+  where 
+    handleGet = needsAuth $ cRender "links"
+    handleFormSubmit = postLinkHandler
 
 {-
 links :: [Link]
